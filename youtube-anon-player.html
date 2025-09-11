@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonymous Player</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            color: #e6edf3;
+        }
+
+        #visualizer-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            max-width: 800px;
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #161b22;
+            margin: 0 auto;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #youtube-player {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .url-input-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .url-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #e6edf3;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .url-input:focus {
+            border-color: #238636;
+        }
+
+        .load-button {
+            background-color: #238636;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .load-button:hover {
+            background-color: #2ea043;
+        }
+
+        .load-button:disabled {
+            background-color: #21262d;
+            cursor: not-allowed;
+        }
+
+        .controls button {
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .controls button:hover {
+            background-color: #30363d;
+        }
+
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #volume-slider, #seek-slider {
+            -webkit-appearance: none;
+            background: #21262d;
+            height: 8px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        #volume-slider::-webkit-slider-thumb, #seek-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #238636;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .share-section {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+        }
+
+        .share-url {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .share-url input {
+            flex: 1;
+            padding: 0.5rem;
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #e6edf3;
+            font-size: 0.875rem;
+        }
+
+        .copy-button {
+            padding: 0.5rem 1rem;
+            background-color: #238636;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .copy-button:hover {
+            background-color: #2ea043;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4">
+    <div class="container mx-auto max-w-4xl">
+        <h1 class="text-4xl font-bold mb-8 text-center">Anonymous Music Player</h1>
+        
+        <div class="url-input-container mb-8">
+            <input type="text" id="youtube-url" class="url-input" 
+                   placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=...)"
+                   value="">
+            <button id="load-button" class="load-button">Load Music</button>
+        </div>
+
+        <div id="player-section" class="hidden">
+            <div id="visualizer-container">
+                <canvas id="visualizer"></canvas>
+                <div id="youtube-player"></div>
+            </div>
+
+            <div class="w-full max-w-md mx-auto mt-6">
+                <input type="range" id="seek-slider" min="0" max="100" step="0.1" value="0" 
+                       class="w-full">
+                <div class="flex justify-between text-xs text-gray-400 mt-1">
+                    <span id="current-time">0:00</span>
+                    <span id="total-time">0:00</span>
+                </div>
+            </div>
+
+            <div class="controls mt-4 flex items-center justify-center gap-4">
+                <button id="play-pause-btn" class="flex items-center space-x-2">
+                    <span id="play-pause-text">Play</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <label class="text-sm">Volume:</label>
+                    <input type="range" id="volume-slider" min="0" max="100" step="1" value="100" class="w-24">
+                </div>
+            </div>
+
+            <div class="share-section hidden" id="share-section">
+                <h3 class="text-lg font-semibold mb-2">Share this anonymous link:</h3>
+                <div class="share-url">
+                    <input type="text" id="share-link" readonly>
+                    <button class="copy-button" onclick="copyShareLink()">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="message" class="mt-4 text-center text-sm text-gray-400"></div>
+    </div>
+
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    
+    <script>
+        let player;
+        let isPlayerReady = false;
+        let visualizerInterval;
+        let animationId;
+        
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        const loadButton = document.getElementById('load-button');
+        const urlInput = document.getElementById('youtube-url');
+        const playerSection = document.getElementById('player-section');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const playPauseText = document.getElementById('play-pause-text');
+        const volumeSlider = document.getElementById('volume-slider');
+        const seekSlider = document.getElementById('seek-slider');
+        const currentTimeEl = document.getElementById('current-time');
+        const totalTimeEl = document.getElementById('total-time');
+        const shareSection = document.getElementById('share-section');
+        const shareLinkInput = document.getElementById('share-link');
+
+        // Set canvas dimensions
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Extract video ID from YouTube URL
+        function extractVideoId(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
+        }
+
+        // Format time
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Show message
+        function showMessage(msg) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = msg;
+            setTimeout(() => messageEl.textContent = '', 3000);
+        }
+
+        // YouTube Player Ready
+        function onYouTubeIframeAPIReady() {
+            // API is ready, player will be created when user loads a video
+        }
+
+        // Create YouTube player
+        function createPlayer(videoId) {
+            if (player) {
+                player.destroy();
+            }
+
+            player = new YT.Player('youtube-player', {
+                height: '1',
+                width: '1',
+                videoId: videoId,
+                playerVars: {
+                    'autoplay': 0,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'showinfo': 0,
+                    'fs': 0,
+                    'iv_load_policy': 3,
+                    'enablejsapi': 1,
+                    'origin': window.location.origin
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            isPlayerReady = true;
+            playerSection.classList.remove('hidden');
+            
+            // Set initial volume
+            player.setVolume(100);
+            
+            // Get duration
+            const duration = player.getDuration();
+            totalTimeEl.textContent = formatTime(duration);
+            
+            // Start time update interval
+            if (visualizerInterval) clearInterval(visualizerInterval);
+            visualizerInterval = setInterval(updateTime, 100);
+            
+            // Generate share link
+            generateShareLink();
+            
+            showMessage('Music loaded! Click Play to start.');
+            startVisualizer();
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                playPauseText.textContent = 'Pause';
+            } else {
+                playPauseText.textContent = 'Play';
+            }
+        }
+
+        function onPlayerError(event) {
+            showMessage('Error loading video. Please try another URL.');
+            console.error('YouTube Player Error:', event);
+        }
+
+        // Update time display
+        function updateTime() {
+            if (!player || !isPlayerReady) return;
+            
+            const current = player.getCurrentTime();
+            const duration = player.getDuration();
+            
+            currentTimeEl.textContent = formatTime(current);
+            
+            if (!seekSlider.matches(':active')) {
+                seekSlider.value = (current / duration) * 100;
+            }
+        }
+
+        // Visualizer
+        function startVisualizer() {
+            const bars = 64;
+            const barData = new Array(bars).fill(0);
+            
+            function draw() {
+                ctx.fillStyle = '#161b22';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const barWidth = (canvas.width / bars) - 2;
+                let x = 1;
+                
+                for (let i = 0; i < bars; i++) {
+                    // Simulate frequency data with random variations
+                    if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
+                        barData[i] += (Math.random() - 0.5) * 20;
+                        barData[i] = Math.max(10, Math.min(canvas.height * 0.8, barData[i]));
+                        barData[i] *= 0.95; // Decay
+                        
+                        // Add bass emphasis for lower frequencies
+                        if (i < bars / 4) {
+                            barData[i] += Math.random() * 30;
+                        }
+                    } else {
+                        barData[i] *= 0.9; // Faster decay when paused
+                    }
+                    
+                    const barHeight = barData[i];
+                    const hue = (i / bars) * 120; // Green to red gradient
+                    ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+                    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    x += barWidth + 2;
+                }
+                
+                animationId = requestAnimationFrame(draw);
+            }
+            
+            // Initialize with random values
+            for (let i = 0; i < bars; i++) {
+                barData[i] = Math.random() * canvas.height * 0.3;
+            }
+            
+            draw();
+        }
+
+        // Generate shareable link
+        function generateShareLink() {
+            const videoId = extractVideoId(urlInput.value);
+            if (videoId) {
+                const baseUrl = window.location.origin + window.location.pathname;
+                const shareUrl = `${baseUrl}?v=${videoId}`;
+                shareLinkInput.value = shareUrl;
+                shareSection.classList.remove('hidden');
+            }
+        }
+
+        // Copy share link
+        function copyShareLink() {
+            shareLinkInput.select();
+            document.execCommand('copy');
+            showMessage('Link copied to clipboard!');
+        }
+
+        // Event Listeners
+        loadButton.addEventListener('click', () => {
+            const url = urlInput.value.trim();
+            if (!url) {
+                showMessage('Please enter a YouTube URL');
+                return;
+            }
+            
+            const videoId = extractVideoId(url);
+            if (!videoId) {
+                showMessage('Invalid YouTube URL');
+                return;
+            }
+            
+            showMessage('Loading video...');
+            createPlayer(videoId);
+        });
+
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadButton.click();
+            }
+        });
+
+        playPauseBtn.addEventListener('click', () => {
+            if (!player || !isPlayerReady) return;
+            
+            const state = player.getPlayerState();
+            if (state === YT.PlayerState.PLAYING) {
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            if (player && isPlayerReady) {
+                player.setVolume(e.target.value);
+            }
+        });
+
+        seekSlider.addEventListener('input', (e) => {
+            if (player && isPlayerReady) {
+                const duration = player.getDuration();
+                const seekTo = (e.target.value / 100) * duration;
+                player.seekTo(seekTo, true);
+            }
+        });
+
+        // Check for video ID in URL parameters on load
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoId = urlParams.get('v');
+            
+            if (videoId) {
+                urlInput.value = `https://www.youtube.com/watch?v=${videoId}`;
+                loadButton.click();
+            }
+        });
+    </script>
+</body>
+</html>
