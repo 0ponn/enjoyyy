@@ -4,7 +4,7 @@ Anonymous YouTube Audio Streamer
 Extracts and streams audio from YouTube videos without exposing metadata
 """
 
-from flask import Flask, request, jsonify, Response, send_from_directory
+from flask import Flask, request, jsonify, Response, send_from_directory, redirect
 from flask_cors import CORS
 import yt_dlp
 import requests
@@ -718,20 +718,9 @@ def stream_audio():
     if not audio_url:
         return "Failed to extract audio", 500
     
-    # Stream the audio
-    def generate():
-        try:
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-            with requests.get(audio_url, stream=True, headers=headers, timeout=30) as r:
-                r.raise_for_status()
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        yield chunk
-        except Exception as e:
-            print(f"Error streaming audio: {e}")
-            yield b''
-    
-    return Response(generate(), mimetype='audio/mpeg')
+    # Redirect to the actual audio URL instead of proxying
+    # This avoids timeout issues and lets the client stream directly
+    return redirect(audio_url, code=302)
 
 @app.route('/api/metadata')
 def get_metadata():
