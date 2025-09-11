@@ -119,30 +119,51 @@ def index():
         
         body {
             font-family: system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-image: url('https://cdn.spacetelescope.org/archives/images/wallpaper2/heic0406a.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 1rem;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
+            pointer-events: none;
         }
         
         .container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 1rem;
             padding: 2rem;
             max-width: 42rem;
             width: 100%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 1;
         }
         
         .title {
-            font-size: 2.25rem;
+            font-size: 3rem;
             font-weight: bold;
             color: white;
             margin-bottom: 2rem;
             text-align: center;
+            text-shadow: 0 0 30px rgba(147, 51, 234, 0.8), 0 0 60px rgba(147, 51, 234, 0.4);
+            letter-spacing: 0.1em;
         }
         
         .input-section {
@@ -490,8 +511,8 @@ def index():
                 requestAnimationFrame(draw);
                 analyser.getByteFrequencyData(dataArray);
                 
-                // Clear canvas with semi-transparent overlay for trail effect
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                // Clear canvas with transparent overlay for space background to show through
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 const barWidth = Math.max(1, (canvas.width / bufferLength) * 2.5);
@@ -500,10 +521,11 @@ def index():
                 for (let i = 0; i < bufferLength; i++) {
                     const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
                     
-                    // Create gradient effect
+                    // Create cosmic gradient effect - purples and blues
                     const intensity = dataArray[i] / 255;
-                    const alpha = 0.3 + intensity * 0.7;
-                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    const hue = 200 + (intensity * 80); // Blue to purple range
+                    const alpha = 0.4 + intensity * 0.6;
+                    ctx.fillStyle = `hsla(${hue}, 100%, ${50 + intensity * 30}%, ${alpha})`;
                     
                     ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
                     x += barWidth + 1;
@@ -515,6 +537,18 @@ def index():
         
         function setupAudioEndListener() {
             const audio = document.getElementById('audio');
+            
+            // Add error handling
+            audio.addEventListener('error', (e) => {
+                console.error('Audio error:', e);
+                const status = document.getElementById('status');
+                status.textContent = 'Error loading audio. The link may have expired.';
+            });
+            
+            // Debug logging
+            audio.addEventListener('loadstart', () => console.log('Audio loading started'));
+            audio.addEventListener('loadeddata', () => console.log('Audio data loaded'));
+            audio.addEventListener('canplay', () => console.log('Audio can play'));
             
             // Update mystery message with progress
             audio.addEventListener('timeupdate', () => {
@@ -547,9 +581,19 @@ def index():
                 }
             });
             
-            audio.addEventListener('ended', async () => {
-                if (currentTrackId) {
+            audio.addEventListener('ended', async (e) => {
+                console.log('Audio ended event fired');
+                // Only reveal if the audio actually played to completion
+                if (currentTrackId && audio.currentTime > 0 && !audio.paused && audio.ended) {
+                    console.log('Revealing track info for:', currentTrackId);
                     await revealTrackInfo(currentTrackId);
+                } else {
+                    console.log('Audio ended but conditions not met:', {
+                        currentTrackId,
+                        currentTime: audio.currentTime,
+                        paused: audio.paused,
+                        ended: audio.ended
+                    });
                 }
             });
         }
@@ -627,16 +671,25 @@ def index():
             if (videoId) {
                 currentTrackId = videoId;
                 // Auto-load the shared video
-                fetch('/api/stream?id=' + videoId)
-                    .then(response => {
-                        if (response.ok) {
-                            const audio = document.getElementById('audio');
-                            audio.src = `/api/stream?id=${videoId}`;
-                            document.getElementById('player').classList.add('show');
-                            setupVisualizer();
-                            setupAudioEndListener();
-                        }
-                    });
+                const audio = document.getElementById('audio');
+                audio.src = `/api/stream?id=${videoId}`;
+                
+                // Show player immediately
+                document.getElementById('player').classList.add('show');
+                
+                // Hide input section for shared links
+                const inputSection = document.querySelector('.input-section');
+                if (inputSection) {
+                    inputSection.style.display = 'none';
+                }
+                
+                // Setup visualizer and listeners
+                setupVisualizer();
+                setupAudioEndListener();
+                
+                // Show sharing info
+                const status = document.getElementById('status');
+                status.textContent = 'Mystery track loaded! Press play to begin.';
             }
         });
     </script>
