@@ -1,0 +1,12 @@
+run = "python backend_server.py"
+language = "python3"
+
+[nix]
+channel = "stable-22_05"
+
+[packager]
+language = "python3"
+
+[packager.features]
+packageSearch = true
+guessImports = true
