@@ -4,7 +4,7 @@ Anonymous YouTube Audio Streamer
 Extracts and streams audio from YouTube videos without exposing metadata
 """
 
-from flask import Flask, request, jsonify, Response, send_from_directory, redirect
+from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 import yt_dlp
 import requests
@@ -718,9 +718,53 @@ def stream_audio():
     if not audio_url:
         return "Failed to extract audio", 500
     
-    # Redirect to the actual audio URL instead of proxying
-    # This avoids timeout issues and lets the client stream directly
-    return redirect(audio_url, code=302)
+    # Stream the audio with proper chunking to avoid timeout
+    def generate():
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Range': request.headers.get('Range', 'bytes=0-')
+            }
+            
+            # Make request with streaming
+            r = requests.get(audio_url, stream=True, headers=headers, timeout=None)
+            r.raise_for_status()
+            
+            # Get content info
+            content_length = r.headers.get('Content-Length')
+            content_type = r.headers.get('Content-Type', 'audio/mpeg')
+            
+            # Create response headers
+            response_headers = {
+                'Content-Type': content_type,
+                'Accept-Ranges': 'bytes',
+                'Cache-Control': 'no-cache',
+            }
+            
+            if content_length:
+                response_headers['Content-Length'] = content_length
+            
+            if 'Content-Range' in r.headers:
+                response_headers['Content-Range'] = r.headers['Content-Range']
+            
+            # Stream in larger chunks to be more efficient
+            chunk_size = 64 * 1024  # 64KB chunks
+            
+            for chunk in r.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    yield chunk
+                    
+        except requests.exceptions.RequestException as e:
+            print(f"Streaming error: {e}")
+            # Return empty response on error
+            yield b''
+    
+    # Return streaming response with proper headers
+    response = Response(generate(), mimetype='audio/mpeg')
+    response.headers['Accept-Ranges'] = 'bytes'
+    response.headers['Cache-Control'] = 'no-cache'
+    
+    return response
 
 @app.route('/api/metadata')
 def get_metadata():
