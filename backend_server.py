@@ -422,6 +422,8 @@ def index():
         let audioContext, analyser, source;
         let currentTrackId = null;
         let visualizerRunning = false;
+        let streamRefreshInterval = null;
+        let lastStreamRefresh = Date.now();
         
         async function loadMusic() {
             const url = document.getElementById('url-input').value;
@@ -535,6 +537,38 @@ def index():
             draw();
         }
         
+        function startStreamKeepAlive() {
+            // Refresh the audio stream URL every 30 seconds to avoid backend timeouts
+            const audio = document.getElementById('audio');
+            
+            if (streamRefreshInterval) clearInterval(streamRefreshInterval);
+            
+            streamRefreshInterval = setInterval(async () => {
+                if (!currentTrackId) return;
+                
+                const now = Date.now();
+                // Only refresh if playing and at least 25s passed since last refresh
+                if (!audio.paused && (now - lastStreamRefresh) > 25000) {
+                    const currentTime = audio.currentTime;
+                    const wasPaused = audio.paused;
+                    
+                    // Append a cache-busting query param so the browser re-requests
+                    const newSrc = `/api/stream?id=${currentTrackId}&t=${Math.floor(currentTime)}&cb=${Date.now()}`;
+                    
+                    try {
+                        // Swap source without losing position
+                        audio.src = newSrc;
+                        await audio.play();
+                        audio.currentTime = currentTime;
+                        lastStreamRefresh = now;
+                        console.log('Refreshed stream at', currentTime, 'seconds');
+                    } catch (e) {
+                        console.error('Stream refresh failed:', e);
+                    }
+                }
+            }, 5000); // check every 5s
+        }
+
         function setupAudioEndListener() {
             const audio = document.getElementById('audio');
             
