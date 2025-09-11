@@ -16,6 +16,9 @@ from urllib.parse import urlparse, parse_qs
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+# Get port from environment variable for deployment
+PORT = int(os.environ.get('PORT', 5000))
+
 # Cache directory for temporary audio files (optional)
 CACHE_DIR = "./audio_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -757,12 +760,14 @@ if __name__ == '__main__':
     print("                 ENJOYYY                 ")
     print("       Mystery Music Sharing Platform    ")
     print("="*50)
-    print("\n🎭 Server starting at http://localhost:5000")
+    print(f"\n🎭 Server starting on port {PORT}")
     print("\nHow to use:")
-    print("1. Open http://localhost:5000 in your browser")
+    print("1. Open the app in your browser")
     print("2. Paste a YouTube URL")
     print("3. Share the generated mystery link")
     print("4. Recipients must listen to the end to reveal!")
     print("\nPress Ctrl+C to stop the server\n")
     
-    app.run(debug=True, port=5000)
+    # Check if running in production
+    debug_mode = os.environ.get('RAILWAY_ENVIRONMENT') is None
+    app.run(debug=debug_mode, host='0.0.0.0', port=PORT)
