@@ -88,28 +88,15 @@ def get_video_info_invidious(video_id):
         print(f"Invidious error: {e}")
         return None, None
 
-# Copy the same HTML from main backend
 @app.route('/')
 def index():
-    return '''<!DOCTYPE html>
-<html>
-<head>
-    <title>Enjoyyy</title>
-    <style>
-        body {
-            font-family: system-ui;
-            background: #000;
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-    <h1>🎭 Enjoyyy (Invidious Backend)</h1>
-    <p>Alternative backend using Invidious API</p>
-</body>
-</html>'''
+    """Serve the main HTML page"""
+    try:
+        with open('index.html', 'r') as f:
+            return f.read()
+    except:
+        # Fallback if index.html not found
+        return '<h1>Enjoyyy</h1><p>index.html not found. Deploy the full app.</p>'
 
 @app.route('/api/extract', methods=['POST'])
 def extract_audio():

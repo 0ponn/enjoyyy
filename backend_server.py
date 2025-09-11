@@ -120,7 +120,12 @@ def get_video_info(video_url):
 @app.route('/')
 def index():
     """Serve the main HTML page"""
-    return '''<!DOCTYPE html>
+    try:
+        with open('index.html', 'r') as f:
+            return f.read()
+    except:
+        # Fallback with embedded HTML if index.html not found
+        return '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
