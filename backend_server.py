@@ -718,53 +718,20 @@ def stream_audio():
     if not audio_url:
         return "Failed to extract audio", 500
     
-    # Stream the audio with proper chunking to avoid timeout
-    def generate():
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Range': request.headers.get('Range', 'bytes=0-')
-            }
-            
-            # Make request with streaming
-            r = requests.get(audio_url, stream=True, headers=headers, timeout=None)
-            r.raise_for_status()
-            
-            # Get content info
-            content_length = r.headers.get('Content-Length')
-            content_type = r.headers.get('Content-Type', 'audio/mpeg')
-            
-            # Create response headers
-            response_headers = {
-                'Content-Type': content_type,
-                'Accept-Ranges': 'bytes',
-                'Cache-Control': 'no-cache',
-            }
-            
-            if content_length:
-                response_headers['Content-Length'] = content_length
-            
-            if 'Content-Range' in r.headers:
-                response_headers['Content-Range'] = r.headers['Content-Range']
-            
-            # Stream in larger chunks to be more efficient
-            chunk_size = 64 * 1024  # 64KB chunks
-            
-            for chunk in r.iter_content(chunk_size=chunk_size):
+    # Simple proxy streaming that works
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        r = requests.get(audio_url, stream=True, headers=headers)
+        
+        def generate():
+            for chunk in r.iter_content(chunk_size=8192):
                 if chunk:
                     yield chunk
-                    
-        except requests.exceptions.RequestException as e:
-            print(f"Streaming error: {e}")
-            # Return empty response on error
-            yield b''
-    
-    # Return streaming response with proper headers
-    response = Response(generate(), mimetype='audio/mpeg')
-    response.headers['Accept-Ranges'] = 'bytes'
-    response.headers['Cache-Control'] = 'no-cache'
-    
-    return response
+        
+        return Response(generate(), mimetype='audio/mpeg')
+    except Exception as e:
+        print(f"Stream error: {e}")
+        return "Streaming error", 500
 
 @app.route('/api/metadata')
 def get_metadata():
