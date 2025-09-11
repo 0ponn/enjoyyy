@@ -47,6 +47,20 @@ def get_video_info(video_url):
         'no_warnings': True,
         'extract_flat': False,
         'noplaylist': True,
+        # Bypass bot detection
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web'],
+                'player_skip': ['webpage', 'config'],
+            }
+        },
+        'headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-us,en;q=0.5',
+            'Accept-Encoding': 'gzip,deflate',
+            'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+        },
     }
     
     try:
@@ -98,7 +112,9 @@ def get_video_info(video_url):
             return audio_url, metadata
             
     except Exception as e:
+        import traceback
         print(f"Error extracting info from {video_url}: {e}")
+        print(f"Full traceback: {traceback.format_exc()}")
         return None, None
 
 @app.route('/')
