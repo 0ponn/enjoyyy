@@ -68,3 +68,10 @@ instance/
 *.backup
 temp/
 tmp/
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/.env*.local
+frontend/.vercel

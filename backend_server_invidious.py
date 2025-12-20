@@ -13,7 +13,21 @@ import os
 import random
 
 app = Flask(__name__)
-CORS(app)
+
+# Configure CORS with specific origins for security
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://enjoyyy.mmmmichael.com",
+]
+
+# Add Vercel preview URLs if in production
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    allowed_origins.extend([
+        "https://*.vercel.app",  # Vercel preview deployments
+    ])
+
+CORS(app, origins=allowed_origins, supports_credentials=True)
 
 PORT = int(os.environ.get('PORT', 5000))
 CACHE_DIR = "./audio_cache"
