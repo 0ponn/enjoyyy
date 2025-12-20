@@ -1,33 +1,37 @@
-# 🎭 Enjoyyy
+# enjoyyy
 
-> Share music mysteriously. Listen completely. Discover finally.
+> Share music without spoilers
 
-**Enjoyyy** is an anonymous music sharing platform that turns YouTube songs into mystery experiences. Share music without revealing what it is - listeners must enjoy the full track to discover what they're hearing!
+**enjoyyy** is an anonymous music sharing platform that turns YouTube songs into mystery experiences. Share music without revealing what it is - listeners must enjoy the full track to discover what they're hearing!
 
 ## Features
 
 - 🎵 **Anonymous Sharing** - Share music without revealing artist or title
-- 🎨 **Custom Visualizer** - Real-time audio visualization instead of video
+- 🎨 **Custom Visualizer** - Real-time audio visualization with magnetic field theme
 - 🎭 **Mystery Reveal** - Song details only shown after the track ends
 - 🔗 **Shareable Links** - Generate anonymous URLs for easy sharing
+- 🏠 **Home Button** - Easy navigation to create your own mystery links
 - 📱 **Responsive Design** - Works on desktop and mobile
 
 ## How It Works
 
 1. **Paste a YouTube URL** - Any music video or audio
-2. **Get an anonymous link** - Like `yoursite.com/?v=abc123`
+2. **Get an anonymous link** - Like `enjoyyy.mmmmichael.com/?v=abc123`
 3. **Share the mystery** - Recipients see only the visualizer
 4. **Listen to reveal** - Song details appear after playback ends
 
 ## The Mystery Experience
 
 When someone receives your anonymous link, they see:
-- ✨ A beautiful audio visualizer
+- ✨ A beautiful audio visualizer with magnetic field theme
 - 🎭 "Want to know what song this is?"
 - ⏱️ Dynamic countdown in the final 30 seconds
 - 🎉 Full reveal with title, artist, and stats after the song ends
+- 🏠 Home button to create their own mystery links
 
 ## Quick Start
+
+### Backend
 
 ```bash
 # Install dependencies
@@ -36,31 +40,98 @@ pip install -r requirements.txt
 # Run locally
 python3 backend_server.py
 
-# Visit http://localhost:5000
+# Backend runs on http://localhost:5000
 ```
 
-## Deploy to Production
+### Frontend
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed hosting instructions.
+```bash
+# Navigate to frontend
+cd frontend
 
-### Fastest Deployment (Railway.app)
-1. Push to GitHub
-2. Connect to Railway
-3. Deploy!
+# Install dependencies
+npm install
 
-## Files
+# Run development server
+PORT=3001 npm run dev
 
-- `backend_server.py` - Main Flask server with all functionality
-- `requirements.txt` - Python dependencies
-- `DEPLOYMENT.md` - Complete deployment guide
-- `audio_cache/` - Temporary storage for metadata
+# Frontend runs on http://localhost:3001
+```
+
+### Start Everything (with Cloudflare Tunnel)
+
+```bash
+# Start all services
+./start_with_tunnel.sh
+
+# Or check what's needed
+./verify_setup.sh
+```
+
+## Deployment
+
+### Cloudflare Tunnel (Recommended)
+
+See [CLOUDFLARE_SIMPLE.md](CLOUDFLARE_SIMPLE.md) for step-by-step Cloudflare tunnel setup.
+
+**Quick setup:**
+1. Create tunnel in Cloudflare Dashboard
+2. Add published applications for routing
+3. Install cloudflared service
+4. Start services
+
+### Other Options
+
+- **Railway + Vercel**: See [DEPLOYMENT.md](DEPLOYMENT.md)
+- **VPS**: See [ARCHITECTURE.md](ARCHITECTURE.md)
+
+## Project Structure
+
+```
+enjoyyy/
+├── backend_server.py          # Main Flask server
+├── frontend/
+│   ├── app/
+│   │   ├── page.tsx          # Main app page
+│   │   ├── layout.tsx        # Root layout
+│   │   └── globals.css       # Global styles
+│   ├── components/
+│   │   ├── Visualizer.tsx    # Audio visualization
+│   │   ├── MysteryMessage.tsx # Countdown component
+│   │   ├── RevealSection.tsx # Song reveal
+│   │   └── ShareSection.tsx   # Share link UI
+│   └── package.json          # Frontend dependencies
+├── cloudflare-tunnel.yml     # Tunnel configuration
+├── requirements.txt          # Python dependencies
+└── [helper scripts]          # Development scripts
+```
 
 ## Technologies Used
 
-- **Backend**: Flask, yt-dlp
-- **Frontend**: Vanilla JavaScript, Web Audio API
-- **Visualization**: HTML5 Canvas
+- **Backend**: Flask, yt-dlp, flask-cors
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS, Framer Motion
+- **Visualization**: HTML5 Canvas, Web Audio API
+- **Deployment**: Cloudflare Tunnel, systemd services
 - **Streaming**: Real-time audio extraction from YouTube
+
+## Configuration
+
+### Environment Variables
+
+**Frontend:**
+- `NEXT_PUBLIC_API_URL` - Backend API URL (defaults to same origin)
+
+**Backend:**
+- `PORT` - Server port (default: 5000)
+- `RAILWAY_ENVIRONMENT` - Set in production
+
+### Cloudflare Tunnel
+
+Configured for `enjoyyy.mmmmichael.com`:
+- Frontend: `enjoyyy.mmmmichael.com/`
+- Backend API: `enjoyyy.mmmmichael.com/api/*`
+
+See [CLOUDFLARE_SIMPLE.md](CLOUDFLARE_SIMPLE.md) for setup.
 
 ## Legal Notice
 
@@ -80,7 +151,7 @@ Contributions are welcome! Feel free to:
 ---
 
 <div align="center">
-  <h3>🎭 Enjoyyy</h3>
-  <p><em>Share music mysteriously. Listen completely. Discover finally.</em></p>
+  <h3>enjoyyy</h3>
+  <p><em>Share music without spoilers</em></p>
   <p>Made with 🎵 for mystery music lovers</p>
 </div>
