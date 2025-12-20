@@ -37,6 +37,22 @@ export default function Home() {
     setAudioUrl(`${API_URL}/api/stream?id=${id}`);
   };
 
+  const normalizeYouTubeUrl = (url: string): string => {
+    if (!url) return url;
+    
+    // Only normalize if it's a complete YouTube URL
+    // Remove mobile subdomain (m.youtube.com -> www.youtube.com)
+    if (url.includes('m.youtube.com')) {
+      return url.replace(/m\.youtube\.com/g, 'www.youtube.com');
+    }
+    // Handle youtu.be mobile links (less common, but possible)
+    if (url.includes('m.youtu.be')) {
+      return url.replace(/m\.youtu\.be/g, 'youtu.be');
+    }
+    
+    return url;
+  };
+
   const handleGoHome = () => {
     // Clear all state
     setUrl('');
@@ -53,12 +69,15 @@ export default function Home() {
     e.preventDefault();
     if (!url) return;
 
+    // Normalize URL (remove mobile subdomain, etc.)
+    const normalizedUrl = normalizeYouTubeUrl(url);
+    
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/extract`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url: normalizedUrl })
       });
 
       const data = await response.json();
@@ -163,7 +182,10 @@ export default function Home() {
               <input
                 type="text"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => {
+                  const normalized = normalizeYouTubeUrl(e.target.value);
+                  setUrl(normalized);
+                }}
                 placeholder="Paste YouTube URL here..."
                 className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 transition"
               />
