@@ -855,6 +855,139 @@ def stream_audio():
         print(f"Stream error: {e}")
         return "Streaming error", 500
 
+@app.route('/api/feedback', methods=['POST'])
+def submit_feedback():
+    """Submit feedback to Linear as an issue"""
+    data = request.json
+
+    feedback_type = data.get('type', 'other')
+    title = data.get('title', '').strip()
+    description = data.get('description', '').strip()
+
+    if not title:
+        return jsonify({'success': False, 'error': 'Title is required'})
+
+    # Linear API configuration
+    linear_api_key = os.environ.get('LINEAR_API_KEY')
+    if not linear_api_key:
+        return jsonify({'success': False, 'error': 'Feedback not configured'})
+
+    # Map feedback types to labels
+    type_labels = {
+        'bug': 'Bug',
+        'feature': 'Feature Request',
+        'other': 'Feedback'
+    }
+
+    # Build the issue description with enjoyyy source identifier
+    full_description = f"**Source:** enjoyyy\n**Type:** {type_labels.get(feedback_type, 'Feedback')}\n\n"
+    if description:
+        full_description += f"{description}"
+
+    # GraphQL mutation to create an issue
+    # First, we need to get the team ID
+    query = '''
+    mutation CreateIssue($title: String!, $description: String!) {
+        issueCreate(input: {
+            title: $title
+            description: $description
+        }) {
+            success
+            issue {
+                id
+                identifier
+                url
+            }
+        }
+    }
+    '''
+
+    # First get the default team
+    team_query = '''
+    query {
+        teams(first: 1) {
+            nodes {
+                id
+                name
+            }
+        }
+    }
+    '''
+
+    headers = {
+        'Authorization': linear_api_key,
+        'Content-Type': 'application/json'
+    }
+
+    try:
+        # Get team ID first
+        team_response = requests.post(
+            'https://api.linear.app/graphql',
+            json={'query': team_query},
+            headers=headers
+        )
+        team_data = team_response.json()
+
+        if 'errors' in team_data:
+            print(f"Linear team query error: {team_data['errors']}")
+            return jsonify({'success': False, 'error': 'Failed to connect to Linear'})
+
+        teams = team_data.get('data', {}).get('teams', {}).get('nodes', [])
+        if not teams:
+            return jsonify({'success': False, 'error': 'No Linear team found'})
+
+        team_id = teams[0]['id']
+
+        # Create the issue with team ID
+        create_query = '''
+        mutation CreateIssue($title: String!, $description: String!, $teamId: String!) {
+            issueCreate(input: {
+                title: $title
+                description: $description
+                teamId: $teamId
+            }) {
+                success
+                issue {
+                    id
+                    identifier
+                    url
+                }
+            }
+        }
+        '''
+
+        issue_response = requests.post(
+            'https://api.linear.app/graphql',
+            json={
+                'query': create_query,
+                'variables': {
+                    'title': f"[enjoyyy] {title}",
+                    'description': full_description,
+                    'teamId': team_id
+                }
+            },
+            headers=headers
+        )
+
+        issue_data = issue_response.json()
+
+        if 'errors' in issue_data:
+            print(f"Linear issue creation error: {issue_data['errors']}")
+            return jsonify({'success': False, 'error': 'Failed to create issue'})
+
+        issue_create = issue_data.get('data', {}).get('issueCreate', {})
+        if issue_create.get('success'):
+            issue = issue_create.get('issue', {})
+            print(f"Created Linear issue: {issue.get('identifier')}")
+            return jsonify({'success': True, 'issueId': issue.get('identifier')})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to create issue'})
+
+    except Exception as e:
+        print(f"Error submitting feedback to Linear: {e}")
+        return jsonify({'success': False, 'error': 'Failed to submit feedback'})
+
+
 @app.route('/api/metadata')
 def get_metadata():
     """Get video metadata for anonymous ID (for reveal after song ends)"""

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 interface ShareSectionProps {
@@ -15,40 +14,30 @@ export default function ShareSection({ shareLink }: ShareSectionProps) {
     try {
       await navigator.clipboard.writeText(shareLink);
       setCopied(true);
-      toast.success('Link copied to clipboard!');
+      toast.success('copied');
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy link');
+      toast.error('failed to copy');
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20"
-    >
-      <h3 className="text-xl font-bold text-white mb-4">🔗 Share the Mystery</h3>
-      <div className="flex gap-2">
+    <div className="py-6 border-t border-neutral-800">
+      <p className="text-neutral-500 text-sm mb-3">share this link</p>
+      <div className="flex gap-3">
         <input
           type="text"
           value={shareLink}
           readOnly
-          className="flex-1 px-4 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 transition"
+          className="flex-1 bg-neutral-900 px-4 py-2 rounded text-sm text-neutral-300 focus:outline-none"
         />
-        <motion.button
+        <button
           onClick={handleCopy}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-pink-700 transition"
+          className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-sm rounded transition-colors"
         >
-          {copied ? '✓ Copied' : 'Copy'}
-        </motion.button>
+          {copied ? 'copied' : 'copy'}
+        </button>
       </div>
-      <p className="text-purple-200 text-sm mt-3">
-        Share this link with friends - they'll only see the visualizer until the song ends!
-      </p>
-    </motion.div>
+    </div>
   );
 }
-

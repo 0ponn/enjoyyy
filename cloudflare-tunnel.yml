@@ -1,26 +1,25 @@
-tunnel: fb12a7ad-53d1-4cc8-9e48-c5ffa5062e5d
-# Using managed tunnel (configured via Cloudflare dashboard)
-# credentials-file not needed for managed tunnels
+tunnel: fc84e838-0efd-4b8f-a395-a94d1f1fd1ea
+credentials-file: /home/mlayug/.cloudflared/fc84e838-0efd-4b8f-a395-a94d1f1fd1ea.json
 
 ingress:
   # Backend API routes - Must come before frontend
-  - hostname: enjoyyy.mmmmichael.com
+  - hostname: enjoyyy.0pon.com
     path: /api/*
     service: http://localhost:5000
     originRequest:
       noHappyEyeballs: true
       keepAliveConnections: 100
       keepAliveTimeout: 90s
-      httpHostHeader: enjoyyy.mmmmichael.com
+      httpHostHeader: enjoyyy.0pon.com
 
   # Frontend (Next.js) - Main app
-  - hostname: enjoyyy.mmmmichael.com
+  - hostname: enjoyyy.0pon.com
     service: http://localhost:3001
     originRequest:
       noHappyEyeballs: true
       keepAliveConnections: 100
       keepAliveTimeout: 90s
-      httpHostHeader: enjoyyy.mmmmichael.com
+      httpHostHeader: enjoyyy.0pon.com
 
   # Catch-all (404)
   - service: http_status:404

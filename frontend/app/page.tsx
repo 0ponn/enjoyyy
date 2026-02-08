@@ -1,16 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import Visualizer from '@/components/Visualizer';
 import MysteryMessage from '@/components/MysteryMessage';
 import RevealSection from '@/components/RevealSection';
 import ShareSection from '@/components/ShareSection';
+import FeedbackModal from '@/components/FeedbackModal';
+import Motes from '@/components/Motes';
 
-// API URL - uses same domain as frontend
-// For local dev, set NEXT_PUBLIC_API_URL=http://localhost:5000
-// For production, uses same origin (enjoyyy.mmmmichael.com)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://enjoyyy.mmmmichael.com');
 
 export default function Home() {
@@ -21,10 +19,10 @@ export default function Home() {
   const [shareLink, setShareLink] = useState('');
   const [metadata, setMetadata] = useState<any>(null);
   const [showReveal, setShowReveal] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    // Check for shared track in URL
     const params = new URLSearchParams(window.location.search);
     const sharedId = params.get('v');
     if (sharedId) {
@@ -39,29 +37,22 @@ export default function Home() {
 
   const normalizeYouTubeUrl = (url: string): string => {
     if (!url) return url;
-    
-    // Only normalize if it's a complete YouTube URL
-    // Remove mobile subdomain (m.youtube.com -> www.youtube.com)
     if (url.includes('m.youtube.com')) {
       return url.replace(/m\.youtube\.com/g, 'www.youtube.com');
     }
-    // Handle youtu.be mobile links (less common, but possible)
     if (url.includes('m.youtu.be')) {
       return url.replace(/m\.youtu\.be/g, 'youtu.be');
     }
-    
     return url;
   };
 
   const handleGoHome = () => {
-    // Clear all state
     setUrl('');
     setTrackId(null);
     setAudioUrl(null);
     setShareLink('');
     setMetadata(null);
     setShowReveal(false);
-    // Clear URL parameter
     window.history.pushState({}, '', window.location.pathname);
   };
 
@@ -69,10 +60,9 @@ export default function Home() {
     e.preventDefault();
     if (!url) return;
 
-    // Normalize URL (remove mobile subdomain, etc.)
     const normalizedUrl = normalizeYouTubeUrl(url);
-    
     setLoading(true);
+
     try {
       const response = await fetch(`${API_URL}/api/extract`, {
         method: 'POST',
@@ -81,18 +71,16 @@ export default function Home() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setTrackId(data.id);
         setAudioUrl(`${API_URL}/api/stream?id=${data.id}`);
-        const link = `${window.location.origin}?v=${data.id}`;
-        setShareLink(link);
-        toast.success('Music loaded! Share the mystery link.');
+        setShareLink(`${window.location.origin}?v=${data.id}`);
       } else {
-        toast.error(data.error || 'Failed to load music');
+        toast.error(data.error || 'Failed to load');
       }
     } catch (error) {
-      toast.error('Error connecting to server');
+      toast.error('Connection error');
     } finally {
       setLoading(false);
     }
@@ -100,7 +88,6 @@ export default function Home() {
 
   const handleAudioEnd = async () => {
     if (!trackId) return;
-    
     try {
       const response = await fetch(`${API_URL}/api/metadata?id=${trackId}`);
       const data = await response.json();
@@ -112,120 +99,81 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen relative overflow-hidden">
-      {/* Magnetic field / ferrite background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-zinc-900 to-slate-800">
-        {/* Magnetic field orbs - iron/steel colors */}
-        <div className="absolute top-0 -left-4 w-96 h-96 bg-amber-600 rounded-full mix-blend-screen filter blur-3xl opacity-25" style={{ animation: 'blob 8s ease-in-out infinite' }}></div>
-        <div className="absolute top-0 -right-4 w-96 h-96 bg-orange-600 rounded-full mix-blend-screen filter blur-3xl opacity-25" style={{ animation: 'blob 8s ease-in-out infinite 2s' }}></div>
-        <div className="absolute -bottom-8 left-20 w-96 h-96 bg-yellow-600 rounded-full mix-blend-screen filter blur-3xl opacity-25" style={{ animation: 'blob 8s ease-in-out infinite 4s' }}></div>
-        {/* Magnetic field lines pattern - curved arcs */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
-          backgroundImage: `
-            radial-gradient(ellipse 800px 400px at 20% 30%, rgba(251, 191, 36, 0.15) 0%, transparent 50%),
-            radial-gradient(ellipse 600px 300px at 80% 70%, rgba(251, 146, 60, 0.15) 0%, transparent 50%),
-            radial-gradient(ellipse 700px 350px at 50% 50%, rgba(234, 179, 8, 0.1) 0%, transparent 50%)
-          `,
-          backgroundSize: '100% 100%',
-        }}></div>
-        {/* Subtle grid - like iron filings */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(251,191,36,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(251,191,36,0.05)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
-        {/* Vignette effect */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)] pointer-events-none"></div>
-      </div>
-      
-      <div className="relative z-10">
-        <Toaster position="top-center" richColors />
-        
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          {/* Home button - show when viewing a shared track */}
-          {audioUrl && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="mb-6"
-            >
-              <motion.button
-                onClick={handleGoHome}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/30 rounded-lg text-white transition backdrop-blur-sm"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                <span>Create Your Own Mystery</span>
-              </motion.button>
-            </motion.div>
-          )}
+    <main className="min-h-screen bg-neutral-950 text-white relative">
+      <Motes />
+      <Toaster position="top-center" theme="dark" />
+      <FeedbackModal isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
 
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8"
+      <div className="max-w-xl mx-auto px-6 py-16 min-h-screen flex flex-col justify-center relative z-10">
+        {audioUrl && (
+          <button
+            onClick={handleGoHome}
+            className="text-neutral-500 hover:text-white text-sm mb-12 transition-colors"
           >
-            <h1 className="text-6xl font-bold text-white mb-2">
-              enjoyyy
-            </h1>
-            <p className="text-purple-200 text-lg">
-              Share music without spoilers
-            </p>
-          </motion.div>
+            ← back
+          </button>
+        )}
+
+        <header className="mb-12">
+          <h1 className="text-4xl font-medium tracking-tight mb-2">enjoyyy</h1>
+          {!audioUrl && (
+            <p className="text-neutral-500">share music without spoilers</p>
+          )}
+        </header>
 
         {!audioUrl ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20"
-          >
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="text"
-                value={url}
-                onChange={(e) => {
-                  const normalized = normalizeYouTubeUrl(e.target.value);
-                  setUrl(normalized);
-                }}
-                placeholder="Paste YouTube URL here..."
-                className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 transition"
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50"
-              >
-                {loading ? 'Loading...' : 'Create Mystery Link'}
-              </button>
-            </form>
-          </motion.div>
-        ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(normalizeYouTubeUrl(e.target.value))}
+              placeholder="paste a youtube link"
+              className="w-full bg-transparent border-b border-neutral-800 py-3 text-lg placeholder-neutral-600 focus:outline-none focus:border-neutral-600 transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={loading || !url}
+              className="mt-8 px-6 py-2.5 bg-white text-black text-sm font-medium rounded-full disabled:opacity-30 transition-opacity"
             >
-              <Visualizer audioRef={audioRef} />
-              
-              <audio
-                ref={audioRef}
-                src={audioUrl}
-                controls
-                onEnded={handleAudioEnd}
-                className="w-full"
-              />
-              
-              {!showReveal && <MysteryMessage audioRef={audioRef} />}
-              
-              {shareLink && <ShareSection shareLink={shareLink} />}
-              
-              {showReveal && metadata && <RevealSection metadata={metadata} />}
-            </motion.div>
-          </AnimatePresence>
+              {loading ? 'loading...' : 'create link'}
+            </button>
+          </form>
+        ) : (
+          <div className="space-y-8">
+            <Visualizer audioRef={audioRef} />
+
+            <audio
+              ref={audioRef}
+              src={audioUrl}
+              controls
+              onEnded={handleAudioEnd}
+              className="w-full"
+            />
+
+            {!showReveal && <MysteryMessage audioRef={audioRef} />}
+            {shareLink && <ShareSection shareLink={shareLink} />}
+            {showReveal && metadata && <RevealSection metadata={metadata} />}
+          </div>
         )}
-        </div>
       </div>
+
+      <a
+        href="https://github.com/memmmmike/enjoyyy"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-5 left-5 text-neutral-600 hover:text-neutral-400 transition-colors z-10"
+      >
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+      </a>
+
+      <button
+        onClick={() => setShowFeedback(true)}
+        className="fixed bottom-5 right-5 text-neutral-600 hover:text-neutral-400 text-sm transition-colors z-10"
+      >
+        feedback
+      </button>
     </main>
   );
 }
