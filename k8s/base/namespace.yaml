@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: enjoyyy
+  labels:
+    app.kubernetes.io/name: enjoyyy
+    app.kubernetes.io/part-of: enjoyyy
