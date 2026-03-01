@@ -9,7 +9,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/memmmmike/enjoyyy.git
+    repoURL: https://github.com/0ponn/enjoyyy.git
     targetRevision: main
     path: k8s/base
 
