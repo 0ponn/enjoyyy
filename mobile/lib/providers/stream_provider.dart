@@ -12,21 +12,27 @@ const int maxVisible = 6;
 class MessageStreamState {
   final List<Message> messages;
   final bool isLoading;
+  final Set<String> vanishing;
 
   const MessageStreamState({
     this.messages = const [],
     this.isLoading = false,
+    this.vanishing = const {},
   });
 
   MessageStreamState copyWith({
     List<Message>? messages,
     bool? isLoading,
+    Set<String>? vanishing,
   }) {
     return MessageStreamState(
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
+      vanishing: vanishing ?? this.vanishing,
     );
   }
+
+  bool isVanishing(String messageId) => vanishing.contains(messageId);
 
   int fadeLevel(int index) {
     if (index < ruleOfThree) {
@@ -53,6 +59,7 @@ class MessageStreamNotifier extends StateNotifier<MessageStreamState> {
   final Ref _ref;
   StreamSubscription<Map<String, dynamic>>? _messageSub;
   StreamSubscription<Map<String, dynamic>>? _affirmSub;
+  StreamSubscription<String>? _vanishSub;
 
   MessageStreamNotifier(this._ref, this._service) : super(const MessageStreamState()) {
     _setupListeners();
@@ -62,7 +69,7 @@ class MessageStreamNotifier extends StateNotifier<MessageStreamState> {
     _messageSub = _service.messageStream.listen((data) {
       final socketState = _ref.read(socketProvider);
       final message = Message.fromJson(data, ownColor: socketState.ownColor);
-      
+
       // Filter out blocked users
       final blocked = _ref.read(blockedProvider);
       if (!blocked.contains(message.colorHex)) {
@@ -77,6 +84,23 @@ class MessageStreamNotifier extends StateNotifier<MessageStreamState> {
         _updateAffirmCount(messageId, count);
       }
     });
+
+    _vanishSub = _service.vanishStream.listen((messageId) {
+      _vanishMessage(messageId);
+    });
+  }
+
+  void _vanishMessage(String messageId) {
+    // Add to vanishing set (triggers animation in UI)
+    final newVanishing = {...state.vanishing, messageId};
+    state = state.copyWith(vanishing: newVanishing);
+  }
+
+  void completeVanish(String messageId) {
+    // Called after animation completes - remove message
+    final newMessages = state.messages.where((m) => m.id != messageId).toList();
+    final newVanishing = {...state.vanishing}..remove(messageId);
+    state = state.copyWith(messages: newMessages, vanishing: newVanishing);
   }
 
   void _addMessage(Message message) {
@@ -117,6 +141,7 @@ class MessageStreamNotifier extends StateNotifier<MessageStreamState> {
   void dispose() {
     _messageSub?.cancel();
     _affirmSub?.cancel();
+    _vanishSub?.cancel();
     super.dispose();
   }
 }

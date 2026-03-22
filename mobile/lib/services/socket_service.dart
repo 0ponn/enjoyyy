@@ -24,6 +24,7 @@ class SocketService {
   final _copyController = StreamController<Map<String, dynamic>>.broadcast();
   final _ghostsController = StreamController<List<Map<String, dynamic>>>.broadcast();
   final _crosstalkController = StreamController<Map<String, dynamic>>.broadcast();
+  final _vanishController = StreamController<String>.broadcast();
 
   Stream<bool> get connectionStream => _connectionController.stream;
   Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
@@ -38,6 +39,7 @@ class SocketService {
   Stream<Map<String, dynamic>> get copyStream => _copyController.stream;
   Stream<List<Map<String, dynamic>>> get ghostsStream => _ghostsController.stream;
   Stream<Map<String, dynamic>> get crosstalkStream => _crosstalkController.stream;
+  Stream<String> get vanishStream => _vanishController.stream;
 
   bool get isConnected => _isConnected;
   String? get currentRoom => _currentRoom;
@@ -182,6 +184,15 @@ class SocketService {
         _crosstalkController.add(data);
       }
     });
+
+    _socket!.on('vanish', (data) {
+      if (data is Map<String, dynamic>) {
+        final messageId = data['messageId'] as String?;
+        if (messageId != null) {
+          _vanishController.add(messageId);
+        }
+      }
+    });
   }
 
   void sendMessage(String text) {
@@ -273,5 +284,6 @@ class SocketService {
     _copyController.close();
     _ghostsController.close();
     _crosstalkController.close();
+    _vanishController.close();
   }
 }

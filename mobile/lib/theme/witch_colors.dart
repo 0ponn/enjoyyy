@@ -38,6 +38,6 @@ class WitchColors {
   static const Color warning = Color(0xFFff9800);
 
   // Glass effect colors
-  static Color glassBackground = soot900.withOpacity(0.65);
-  static Color glassBorder = plum900.withOpacity(0.4);
+  static Color glassBackground = soot900.withValues(alpha: 0.65);
+  static Color glassBorder = plum900.withValues(alpha: 0.4);
 }
