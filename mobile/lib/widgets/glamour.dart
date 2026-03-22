@@ -30,7 +30,7 @@ class Glamour extends ConsumerWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: identity.color.withOpacity(0.5),
+                    color: identity.color.withValues(alpha: 0.5),
                     blurRadius: 4,
                     spreadRadius: 1,
                   ),
@@ -43,7 +43,7 @@ class Glamour extends ConsumerWidget {
                 SigilIcon(
                   sigil: identity.sigil!,
                   size: 14,
-                  color: identity.color.withOpacity(0.7),
+                  color: identity.color.withValues(alpha: 0.7),
                 ),
               if (identity.handle != null) ...[
                 const SizedBox(width: 6),
@@ -128,23 +128,28 @@ class _IdentityPanelState extends State<_IdentityPanel> {
   Widget build(BuildContext context) {
     final identity = widget.ref.watch(identityProvider);
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: WitchColors.soot900.withOpacity(0.9),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(
-              color: WitchColors.plum900.withOpacity(0.4),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: WitchColors.soot900.withValues(alpha: 0.9),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                border: Border.all(
+                  color: WitchColors.plum900.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               // Header
               Row(
                 children: [
@@ -261,7 +266,7 @@ class _IdentityPanelState extends State<_IdentityPanel> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? WitchColors.plum700.withOpacity(0.5)
+                            ? WitchColors.plum700.withValues(alpha: 0.5)
                             : WitchColors.soot800,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
@@ -291,7 +296,7 @@ class _IdentityPanelState extends State<_IdentityPanel> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: WitchColors.parchmentMuted,
                         side: BorderSide(
-                          color: WitchColors.plum900.withOpacity(0.4),
+                          color: WitchColors.plum900.withValues(alpha: 0.4),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -327,6 +332,8 @@ class _IdentityPanelState extends State<_IdentityPanel> {
               SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
             ],
           ),
+        ),
+      ),
         ),
       ),
     );
